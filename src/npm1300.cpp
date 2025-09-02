@@ -63,7 +63,15 @@ int NPM1300_PMIC::begin() {
 }
 
 void NPM1300_PMIC::vbus_current_limit_set(npmx_vbusin_current_t current_limit) {
+    // Configure VBUS current limit
     npmx_vbusin_current_limit_set(npmx_vbusin_get(&npm1300_instance, 0), current_limit);
+
+    // Actually set it
+    delay(100);
+    npmx_vbusin_task_trigger(npmx_vbusin_get(&npm1300_instance, 0), NPMX_VBUSIN_TASK_APPLY_CURRENT_LIMIT);
+
+    // Wait a bit for it to set
+    delay(100);
 }
 
 npmx_vbusin_current_t NPM1300_PMIC::vbus_current_limit_get(bool print) {
