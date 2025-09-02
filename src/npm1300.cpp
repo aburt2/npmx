@@ -132,10 +132,6 @@ void NPM1300_PMIC::print_vbus_current_limit(npmx_vbusin_current_t current_limit)
     }
 }
 
-void NPM1300_PMIC::vbus_current_limit_set(npmx_vbusin_current_t current_limit) {
-    npmx_vbusin_current_limit_set(npmx_vbusin_get(&npm1300_instance, 0), current_limit);
-}
-
 void NPM1300_PMIC::battery_current_limit_set(uint16_t current) {
     npmx_charger_discharging_current_set(npmx_charger_get(&npm1300_instance, 0), current);
 }
