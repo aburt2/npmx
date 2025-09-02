@@ -18,6 +18,12 @@ int NPM1300_PMIC::begin() {
     npm1300_backend.p_context = NULL; // Optional context for our use
 
     npmx_error_t npmx_err = npmx_core_init(&npm1300_instance, &npm1300_backend, NULL, true);
+
+    if (npmx_err == NPMX_SUCCESS) {
+        return 0;
+    } else {
+        return -1;
+    }
 }
 
 
@@ -43,16 +49,16 @@ npmx_error_t i2c_read(void * p_context, uint32_t register_address, uint8_t * p_d
         uint16_t rx_bytes = 0;
         if(offset != 0)
         obj->i2c->beginTransmission(obj->i2c_address);
-        uint16_t length = ((rlen - offset) > ARDUINO_I2C_BUFFER_LENGTH) ? ARDUINO_I2C_BUFFER_LENGTH : (rlen - offset) ;
+        uint16_t length = ((num_of_bytes - offset) > I2C_BUFFER_LENGTH) ? I2C_BUFFER_LENGTH : (num_of_bytes - offset) ;
         rx_bytes = obj->i2c->requestFrom(obj->i2c_address, length);
         if (rx_bytes == length) {
         for(uint8_t i = 0; i < length; i++) {
-            rbuffer[offset+i] = obj->i2c->read();
+            p_data[offset+i] = obj->i2c->read();
         }
         offset += length;
-        obj->i2c->endTransmission((offset == rlen));
+        obj->i2c->endTransmission((offset == num_of_bytes));
         } else {
-        obj->i2c->endTransmission((offset == rlen));
+        obj->i2c->endTransmission((offset == num_of_bytes));
         }
     }
 
@@ -61,33 +67,18 @@ npmx_error_t i2c_read(void * p_context, uint32_t register_address, uint8_t * p_d
 
 
 npmx_error_t i2c_write(void * p_context, uint32_t register_address, uint8_t * p_data, size_t num_of_bytes) {
-    uint8_t data[TWIM_BUF_SIZE];
+    NPM1300_PMIC* obj = (NPM1300_PMIC*)p_context;
+    uint8_t reg_addr[2];
 
-    nrfx_twim_xfer_desc_t desc = {
-        .type = NRFX_TWIM_XFER_TX,
-        .address = NPM1300_ADDR,
-        .primary_length = num_of_bytes + 2,
-        .secondary_length = 0,
-        .p_primary_buf = data,
-        .p_secondary_buf = NULL
-    };
+    reg_addr[0] = register_address >> 8;
+    reg_addr[1] = register_address;
 
-    if (num_of_bytes > (TWIM_BUF_SIZE - 2)) {
-        return NPMX_ERROR_INVALID_PARAM;
+    obj->i2c->beginTransmission(obj->i2c_address);
+    obj->i2c->write(reg_addr, 2);
+    for(uint8_t i = 0; i < num_of_bytes; i++) {
+        obj->i2c->write(p_data[i]);
     }
-
-    data[0] = register_address >> 8;
-    data[1] = register_address;
-    memcpy(&data[2], p_data, num_of_bytes);
-
-    nrfx_err_t err = nrfx_twim_xfer(&twim, &desc, 0);
-    if (err) {
-        return NPMX_ERROR_IO;
-    }
-
-    while (!nrf_atomic_flag_clear_fetch(&twim_op_done)) {
-        __WFE();
-    }
+    obj->i2c->endTransmission();
 
     return NPMX_SUCCESS;
 }

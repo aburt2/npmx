@@ -1,5 +1,5 @@
-#ifndef NPM1300_H
-#define NPM1300_H
+#ifndef NPM1300_PMIC_H
+#define NPM1300_PMIC_H
 
 #include "Arduino.h"
 #include "Wire.h"

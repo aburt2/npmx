@@ -43,7 +43,7 @@
 #include <adk/adk.h>
 
 #include <npmx_error.h>
-#include <drivers/npmx_common.h>
+#include <npmx_common.h>
 #include <backends/npmx_backend.h>
 
 #include <npmx_glue.h>
