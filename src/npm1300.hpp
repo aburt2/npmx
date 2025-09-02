@@ -24,6 +24,8 @@ class NPM1300_PMIC {
     // Set input limits
     void vbus_current_limit_set(npmx_vbusin_current_t current_limit);
     void battery_current_limit_set(uint16_t current);
+    npmx_vbusin_current_t vbus_current_limit_get(bool print = false);
+    void print_vbus_current_limit(npmx_vbusin_current_t current_limit);
 
     // Configure charger
     void enable_charger();

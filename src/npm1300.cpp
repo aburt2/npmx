@@ -66,6 +66,76 @@ void NPM1300_PMIC::vbus_current_limit_set(npmx_vbusin_current_t current_limit) {
     npmx_vbusin_current_limit_set(npmx_vbusin_get(&npm1300_instance, 0), current_limit);
 }
 
+npmx_vbusin_current_t NPM1300_PMIC::vbus_current_limit_get(bool print) {
+    npmx_vbusin_current_t current_limit;
+    npmx_vbusin_current_limit_get(npmx_vbusin_get(&npm1300_instance, 0), &current_limit);
+    
+    if (print) {
+        print_vbus_current_limit(current_limit);
+    }
+    return current_limit;
+}
+
+void NPM1300_PMIC::print_vbus_current_limit(npmx_vbusin_current_t current_limit) {
+    switch (current_limit)
+    {
+    case NPMX_VBUSIN_CURRENT_100_MA:
+        /* code */
+        Serial.println("Vbus limit: 100mA");
+        break;
+    case NPMX_VBUSIN_CURRENT_500_MA:
+        /* code */
+        Serial.println("Vbus limit: 500mA");
+        break;
+    case NPMX_VBUSIN_CURRENT_600_MA:
+        /* code */
+        Serial.println("Vbus limit: 600mA");
+        break;
+    case NPMX_VBUSIN_CURRENT_700_MA:
+        /* code */
+        Serial.println("Vbus limit: 700mA");
+        break;
+    case NPMX_VBUSIN_CURRENT_800_MA:
+        /* code */
+        Serial.println("Vbus limit: 800mA");
+        break;
+    case NPMX_VBUSIN_CURRENT_900_MA:
+        /* code */
+        Serial.println("Vbus limit: 900mA");
+        break;
+    case NPMX_VBUSIN_CURRENT_1000_MA:
+        /* code */
+        Serial.println("Vbus limit: 1000mA");
+        break;
+    case NPMX_VBUSIN_CURRENT_1100_MA:
+        /* code */
+        Serial.println("Vbus limit: 1100mA");
+        break;
+    case NPMX_VBUSIN_CURRENT_1200_MA:
+        /* code */
+        Serial.println("Vbus limit: 1200mA");
+        break;
+    case NPMX_VBUSIN_CURRENT_1300_MA:
+        /* code */
+        Serial.println("Vbus limit: 1300mA");
+        break;
+    case NPMX_VBUSIN_CURRENT_1400_MA:
+        /* code */
+        Serial.println("Vbus limit: 1400mA");
+        break;
+    case NPMX_VBUSIN_CURRENT_1500_MA:
+        /* code */
+        Serial.println("Vbus limit: 1500mA");
+        break;
+    default:
+        break;
+    }
+}
+
+void NPM1300_PMIC::vbus_current_limit_set(npmx_vbusin_current_t current_limit) {
+    npmx_vbusin_current_limit_set(npmx_vbusin_get(&npm1300_instance, 0), current_limit);
+}
+
 void NPM1300_PMIC::battery_current_limit_set(uint16_t current) {
     npmx_charger_discharging_current_set(npmx_charger_get(&npm1300_instance, 0), current);
 }
