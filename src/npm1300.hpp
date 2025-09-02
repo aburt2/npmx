@@ -14,14 +14,35 @@ class NPM1300_PMIC {
   public:
     NPM1300_PMIC(TwoWire &i2c);
     int begin();
+    int begin(TwoWire &i2c);
 
     // I2C address
     uint8_t i2c_address = 0x6b;
     TwoWire *i2c;
 
-    
 
-  protected:
+    // Set input limits
+    void vbus_current_limit_set(npmx_vbusin_current_t current_limit);
+    void battery_current_limit_set(uint16_t current);
+
+    // Configure charger
+    void enable_charger();
+    void set_charge_current(uint32_t current);
+    void set_charge_endvoltage(npmx_charger_voltage_t voltage);
+
+    // Get Fuel gauge stats
+    float getvoltage();
+    float getcurrent();
+    float getsoc();
+
+    // Power management
+    void sleep();
+
+    // Configure LEDs
+    void configureLEDs();
+    
+    // GPIO configuration
+    void enable_gpio_interrupt(uint8_t npmx_pin);
 };
 
 #endif

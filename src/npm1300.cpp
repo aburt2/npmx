@@ -4,26 +4,120 @@ static npmx_error_t i2c_write(void * p_context, uint32_t register_address,
 static npmx_error_t i2c_read(void * p_context, uint32_t register_address,
     uint8_t * p_data, size_t num_of_bytes);
 
+npmx_instance_t npm1300_instance;
+npmx_backend_t npm1300_backend;
 
 NPM1300_PMIC::NPM1300_PMIC(TwoWire &i2c_ref) {
-  i2c = &i2c_ref; 
+    i2c = &i2c_ref; 
 }
 
+int NPM1300_PMIC::begin(TwoWire &i2c_ref) {
+    i2c = &i2c_ref; 
+
+    return begin();
+}
 
 int NPM1300_PMIC::begin() {
-    npmx_instance_t npm1300_instance;
-    npmx_backend_t npm1300_backend;
+    npmx_error_t npmx_err;
+
+    // Setup backend
     npm1300_backend.p_read = i2c_read;
     npm1300_backend.p_write = i2c_write;
-    npm1300_backend.p_context = NULL; // Optional context for our use
+    npm1300_backend.p_context = (void *)this; // Optional context for our use
 
-    npmx_error_t npmx_err = npmx_core_init(&npm1300_instance, &npm1300_backend, NULL, true);
+    // Initialise core
+    npmx_err = npmx_core_init(&npm1300_instance, &npm1300_backend, NULL, true);
 
     if (npmx_err == NPMX_SUCCESS) {
         return 0;
     } else {
         return -1;
     }
+
+    // Configure LEDs
+    Serial.println("Configuring LEDs");
+    configureLEDs();
+    Serial.println("LEDs are configured");
+
+    // Enable battery current readings
+    Serial.println("Setting up automating battery current measurements");
+    npmx_err = npmx_adc_ibat_meas_enable_set(npmx_adc_get(&npm1300_instance, 0), true);
+    Serial.println("Set up automating battery current measurements");
+
+    if (npmx_err == NPMX_SUCCESS) {
+        return 0;
+    } else {
+        return -1;
+    }
+
+    // Increase VBUS input limit
+    Serial.println("Setting up VBUS current limit");
+    vbus_current_limit_set(NPMX_VBUSIN_CURRENT_1500_MA);
+    Serial.println("VBUS current limit set");
+
+    // Enable charger
+    Serial.println("Enabling Charger");
+    set_charge_endvoltage(NPMX_CHARGER_VOLTAGE_4V20); // set max voltage for 1S lithium ion battery
+    enable_charger();
+    Serial.println("Charger enabled");
+}
+
+void NPM1300_PMIC::vbus_current_limit_set(npmx_vbusin_current_t current_limit) {
+    npmx_vbusin_current_limit_set(npmx_vbusin_get(&npm1300_instance, 0), current_limit);
+}
+
+void NPM1300_PMIC::battery_current_limit_set(uint16_t current) {
+    npmx_charger_discharging_current_set(npmx_charger_get(&npm1300_instance, 0), current);
+}
+void NPM1300_PMIC::enable_charger() {
+    npmx_charger_module_enable_set(npmx_charger_get(&npm1300_instance, 0), NPMX_CHARGER_MODULE_CHARGER_MASK);
+}
+void NPM1300_PMIC::set_charge_current(uint32_t current) {
+    npmx_charger_charging_current_set(npmx_charger_get(&npm1300_instance, 0), current);
+}
+void NPM1300_PMIC::set_charge_endvoltage(npmx_charger_voltage_t voltage) {
+    npmx_charger_termination_normal_voltage_set(npmx_charger_get(&npm1300_instance, 0), voltage);
+}
+float NPM1300_PMIC::getvoltage() {
+    int32_t rawData;
+    float voltage; // voltage in Volts
+
+    npmx_adc_meas_get(npmx_adc_get(&npm1300_instance, 0), NPMX_ADC_MEAS_VBAT, &rawData);
+
+    // if there is no battery attached
+    if (rawData == 0) {
+        npmx_adc_meas_get(npmx_adc_get(&npm1300_instance, 0), NPMX_ADC_MEAS_VSYS, &rawData);
+    }
+
+    // voltage in volts
+    voltage = rawData * 0.001f;
+    return voltage;
+}
+float NPM1300_PMIC::getcurrent() {
+    int32_t rawData;
+    float current; // voltage in mA
+
+    npmx_adc_meas_get(npmx_adc_get(&npm1300_instance, 0), NPMX_ADC_MEAS_VBAT2_IBAT, &rawData);
+
+    // voltage in volts
+    current = rawData * 0.001f;
+    return current;
+}
+float NPM1300_PMIC::getsoc() {
+    float soc;
+    return soc;
+}
+void NPM1300_PMIC::sleep() {
+    // Go to ship mode
+    npmx_ship_task_trigger(npmx_ship_get(&npm1300_instance, 0), NPMX_SHIP_TASK_SHIPMODE);
+}
+
+void NPM1300_PMIC::configureLEDs() {
+    // Configure LED0 to show charging status 
+    npmx_led_state_set(npmx_led_get(&npm1300_instance, 0), NPMX_LED_MODE_CHARGING);
+
+    // Configure LED1 to show charging ewrrors
+    npmx_led_state_set(npmx_led_get(&npm1300_instance, 1), NPMX_LED_MODE_ERROR);
 }
 
 
