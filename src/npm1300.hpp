@@ -10,6 +10,10 @@ extern "C" {
 #include <npmx_instance.h>
 }
 
+#ifndef I2C_BUFFER_LENGTH
+#define I2C_BUFFER_LENGTH 256
+#endif
+
 class NPM1300_PMIC {
   public:
     NPM1300_PMIC(TwoWire &i2c);
