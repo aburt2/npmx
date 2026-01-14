@@ -35,14 +35,10 @@ int NPM1300_PMIC::begin() {
     }
 
     // Configure LEDs
-    Serial.println("Configuring LEDs");
     configureLEDs();
-    Serial.println("LEDs are configured");
 
     // Enable battery current readings
-    Serial.println("Setting up automating battery current measurements");
     npmx_err = npmx_adc_ibat_meas_enable_set(npmx_adc_get(&npm1300_instance, 0), true);
-    Serial.println("Set up automating battery current measurements");
 
     if (npmx_err == NPMX_SUCCESS) {
         return 0;
@@ -51,15 +47,11 @@ int NPM1300_PMIC::begin() {
     }
 
     // Increase VBUS input limit
-    Serial.println("Setting up VBUS current limit");
     vbus_current_limit_set(NPMX_VBUSIN_CURRENT_1500_MA);
-    Serial.println("VBUS current limit set");
 
     // Enable charger
-    Serial.println("Enabling Charger");
     set_charge_endvoltage(NPMX_CHARGER_VOLTAGE_4V20); // set max voltage for 1S lithium ion battery
     enable_charger();
-    Serial.println("Charger enabled");
 }
 
 void NPM1300_PMIC::vbus_current_limit_set(npmx_vbusin_current_t current_limit) {
@@ -188,10 +180,43 @@ void NPM1300_PMIC::sleep() {
 
 void NPM1300_PMIC::configureLEDs() {
     // Configure LED0 to show charging status 
-    npmx_led_state_set(npmx_led_get(&npm1300_instance, 0), NPMX_LED_MODE_CHARGING);
+    npmx_led_mode_set(npmx_led_get(&npm1300_instance, 0), NPMX_LED_MODE_CHARGING);
 
     // Configure LED1 to show charging ewrrors
-    npmx_led_state_set(npmx_led_get(&npm1300_instance, 1), NPMX_LED_MODE_ERROR);
+    npmx_led_mode_set(npmx_led_get(&npm1300_instance, 1), NPMX_LED_MODE_ERROR);
+
+    // Configure LED2 to show charging ewrrors
+    npmx_led_mode_set(npmx_led_get(&npm1300_instance, 2), NPMX_LED_MODE_HOST);
+}
+
+void NPM1300_PMIC::configureLEDs(npm1300_led_config conf) {
+    // Configure LED0 to show charging status 
+    npmx_led_mode_set(npmx_led_get(&npm1300_instance, 0), conf.led1_mode);
+
+    // Configure LED1 to show charging ewrrors
+    npmx_led_mode_set(npmx_led_get(&npm1300_instance, 1), conf.led2_mode);
+
+    // Configure LED2 to show charging ewrrors
+    npmx_led_mode_set(npmx_led_get(&npm1300_instance, 2), conf.led3_mode);
+}
+
+bool NPM1300_PMIC::led_on(int led) {
+    // check that led is valid (should be 0, 1 or 2)
+    if (led > 2) {
+        return false;
+    }
+
+    // Set led on
+    npmx_led_state_set(npmx_led_get(&npm1300_instance, led), true);
+}
+bool NPM1300_PMIC::led_off(int led) {
+    // check that led is valid (should be 0, 1 or 2)
+    if (led > 2) {
+        return false;
+    }
+
+    // Set led on
+    npmx_led_state_set(npmx_led_get(&npm1300_instance, led), false);
 }
 
 

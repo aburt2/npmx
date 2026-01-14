@@ -14,6 +14,12 @@ extern "C" {
 #define I2C_BUFFER_LENGTH 256
 #endif
 
+struct npm1300_led_config {
+  npmx_led_mode_t led1_mode;
+  npmx_led_mode_t led2_mode;
+  npmx_led_mode_t led3_mode;
+};
+
 class NPM1300_PMIC {
   public:
     NPM1300_PMIC(TwoWire &i2c);
@@ -44,9 +50,12 @@ class NPM1300_PMIC {
     // Power management
     void sleep();
 
-    // Configure LEDs
+    // LED Control
     void configureLEDs();
-    
+    void configureLEDs(npm1300_led_config conf);
+    bool led_on(int led);
+    bool led_off(int led);
+
     // GPIO configuration
     void enable_gpio_interrupt(uint8_t npmx_pin);
 };
