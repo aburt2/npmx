@@ -14,6 +14,10 @@ extern "C" {
 #define I2C_BUFFER_LENGTH 256
 #endif
 
+#define NPM1300_LED1 0
+#define NPM1300_LED2 1
+#define NPM1300_LED3 2
+
 struct npm1300_led_config {
   npmx_led_mode_t led1_mode;
   npmx_led_mode_t led2_mode;
