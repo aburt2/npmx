@@ -57,6 +57,7 @@ class NPM1300_PMIC {
     // LED Control
     void configureLEDs();
     void configureLEDs(npm1300_led_config conf);
+    void configureLED(int led, npmx_led_mode_t led_mode);
     bool led_on(int led);
     bool led_off(int led);
 

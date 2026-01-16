@@ -155,18 +155,18 @@ float NPM1300_PMIC::getvoltage() {
         npmx_adc_meas_get(npmx_adc_get(&npm1300_instance, 0), NPMX_ADC_MEAS_VSYS, &rawData);
     }
 
-    // voltage in volts
+    // Convert voltage to Volts
     voltage = rawData * 0.001f;
     return voltage;
 }
 float NPM1300_PMIC::getcurrent() {
     int32_t rawData;
-    float current; // voltage in mA
+    float current; // current in mA
 
     npmx_adc_meas_get(npmx_adc_get(&npm1300_instance, 0), NPMX_ADC_MEAS_VBAT2_IBAT, &rawData);
 
-    // voltage in volts
-    current = rawData * 0.001f;
+    // current in mA
+    current = rawData;
     return current;
 }
 float NPM1300_PMIC::getsoc() {
@@ -179,25 +179,30 @@ void NPM1300_PMIC::sleep() {
 }
 
 void NPM1300_PMIC::configureLEDs() {
-    // Configure LED0 to show charging status 
-    npmx_led_mode_set(npmx_led_get(&npm1300_instance, 0), NPMX_LED_MODE_CHARGING);
+    // Configure LED1 to show charging status 
+    configureLED(NPM1300_LED1, NPMX_LED_MODE_CHARGING);
 
-    // Configure LED1 to show charging ewrrors
-    npmx_led_mode_set(npmx_led_get(&npm1300_instance, 1), NPMX_LED_MODE_ERROR);
+    // Configure LED2 to be host controlled
+    configureLED(NPM1300_LED2, NPMX_LED_MODE_HOST);
 
-    // Configure LED2 to show charging ewrrors
-    npmx_led_mode_set(npmx_led_get(&npm1300_instance, 2), NPMX_LED_MODE_HOST);
+    // Configure LED3 to be host controlled
+    configureLED(NPM1300_LED3, NPMX_LED_MODE_HOST);
 }
 
 void NPM1300_PMIC::configureLEDs(npm1300_led_config conf) {
-    // Configure LED0 to show charging status 
-    npmx_led_mode_set(npmx_led_get(&npm1300_instance, 0), conf.led1_mode);
+    // Configure LED1
+    configureLED(NPM1300_LED1, conf.led1_mode);
 
-    // Configure LED1 to show charging ewrrors
-    npmx_led_mode_set(npmx_led_get(&npm1300_instance, 1), conf.led2_mode);
+    // Configure LED2
+    configureLED(NPM1300_LED2, conf.led2_mode);
 
-    // Configure LED2 to show charging ewrrors
-    npmx_led_mode_set(npmx_led_get(&npm1300_instance, 2), conf.led3_mode);
+    // Configure LED3
+    configureLED(NPM1300_LED3, conf.led3_mode);
+}
+
+void NPM1300_PMIC::configureLED(int led, npmx_led_mode_t led_mode) {
+    // Configure LED
+    npmx_led_mode_set(npmx_led_get(&npm1300_instance, led), led_mode);
 }
 
 bool NPM1300_PMIC::led_on(int led) {
