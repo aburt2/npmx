@@ -212,7 +212,11 @@ bool NPM1300_PMIC::led_on(int led) {
     }
 
     // Set led on
-    npmx_led_state_set(npmx_led_get(&npm1300_instance, led), true);
+    npmx_error_t err = npmx_led_state_set(npmx_led_get(&npm1300_instance, led), true);
+
+    // Return true if err is succes
+    if (err == NPMX_SUCCESS) return true;
+    else return false;
 }
 bool NPM1300_PMIC::led_off(int led) {
     // check that led is valid (should be 0, 1 or 2)
@@ -221,7 +225,11 @@ bool NPM1300_PMIC::led_off(int led) {
     }
 
     // Set led on
-    npmx_led_state_set(npmx_led_get(&npm1300_instance, led), false);
+    npmx_error_t err = npmx_led_state_set(npmx_led_get(&npm1300_instance, led), false);
+
+    // Return true if err is succes
+    if (err == NPMX_SUCCESS) return true;
+    else return false;
 }
 
 
