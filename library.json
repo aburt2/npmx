@@ -5,7 +5,7 @@
     "flags": [
       "-DNPM1300",
       "-I templates",
-      "-I drivers",
+      "-I drivers/include",
       "-I backends",
       "-I adk"
     ]
