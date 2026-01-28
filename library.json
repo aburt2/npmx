@@ -1,0 +1,13 @@
+{
+  "name": "NPM1300",
+  "version": "v0.1",
+  "build": {
+    "flags": [
+      "-DNPM1300",
+      "-I templates",
+      "-I drivers",
+      "-I backends",
+      "-I adk"
+    ]
+  }
+}
