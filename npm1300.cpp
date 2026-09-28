@@ -27,27 +27,24 @@ int NPM1300_PMIC::begin() {
 
     // Initialise core
     npmx_err = npmx_core_init(&npm1300_instance, &npm1300_backend, NULL, true);
-
-    if (npmx_err == NPMX_SUCCESS) {
-        return 0;
-    } else {
-        return -1;
-    }
+    if (npmx_err != NPMX_SUCCESS) return -1;
 
     // Configure LEDs
     configureLEDs();
 
     // Enable battery current readings
     npmx_err = npmx_adc_ibat_meas_enable_set(npmx_adc_get(&npm1300_instance, 0), true);
-
-    if (npmx_err == NPMX_SUCCESS) {
-        return 0;
-    } else {
-        return -1;
-    }
+    if (npmx_err != NPMX_SUCCESS) return -1;
 
     // Increase VBUS input limit
     vbus_current_limit_set(NPMX_VBUSIN_CURRENT_1500_MA);
+    while(npm1300_pmic.vbus_current_limit_get(true) != NPMX_VBUSIN_CURRENT_1500_MA) {
+        delay(500);
+        npm1300_pmic.vbus_current_limit_set(NPMX_VBUSIN_CURRENT_1500_MA);
+        npm1300_pmic.vbus_current_limit_get(true);
+        delay(1000);
+    }
+    delay(1000);
 
     // Enable charger
     set_charge_endvoltage(NPMX_CHARGER_VOLTAGE_4V20); // set max voltage for 1S lithium ion battery
