@@ -38,10 +38,10 @@ int NPM1300_PMIC::begin() {
 
     // Increase VBUS input limit
     vbus_current_limit_set(NPMX_VBUSIN_CURRENT_1500_MA);
-    while(npm1300_pmic.vbus_current_limit_get(true) != NPMX_VBUSIN_CURRENT_1500_MA) {
+    while(vbus_current_limit_get(true) != NPMX_VBUSIN_CURRENT_1500_MA) {
         delay(500);
-        npm1300_pmic.vbus_current_limit_set(NPMX_VBUSIN_CURRENT_1500_MA);
-        npm1300_pmic.vbus_current_limit_get(true);
+        vbus_current_limit_set(NPMX_VBUSIN_CURRENT_1500_MA);
+        vbus_current_limit_get(true);
         delay(1000);
     }
     delay(1000);
