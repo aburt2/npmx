@@ -1,6 +1,27 @@
 # Changelog
 All notable changes to this project are documented in this file.
 
+## [1.3.1] - 2026-01-23
+### Fixed
+- Issue where switching a LDSW regualator from the `NPMX_LDSW_MODE_LDO_SOFT_START` mode to `NPMX_LDSW_MODE_LOAD_SWITCH` had no effect on nPM1304 rev 1.1
+
+## [1.3.0] - 2026-01-21
+### Added
+- The `npmx_core_pmic_revision_get` function to retrieve the PMIC revision.
+- A new mode `NPMX_LDSW_MODE_LDO_SOFT_START` to the `npmx_ldsw_mode_t` enum. Pass this mode to the `npmx_ldsw_mode_set` function to configure a LDSW regulator in LDO mode with soft start. Available on the following PMIC revisions:
+  - nPM1304: >= 1.1
+  - nPM1300: TBA
+
+## [1.2.2] - 2025-11-20
+### Fixed
+- Docstring typo in the `npmx_adc_meas_t` enum
+- Syntax error in the `templates/npmx_config.h` file
+- Typos in macro definitions in the `adk/compiler_abstraction.h` file
+
+## [1.2.1] - 2025-09-11
+### Fixed
+ - Fixed issue in npmx_adc_meas_get where 2 lsbits would be incorrect.
+
 ## [1.2.0] - 2025-08-12
 ### Changed
 - `npmx_charger_charging_current_get` and `npmx_charger_charging_current_set` now uses microamperes instead of milliamperes in order to support the more fine-grained adjustment options for nPM1304.
