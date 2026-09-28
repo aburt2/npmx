@@ -49,6 +49,9 @@ int NPM1300_PMIC::begin() {
     // Enable charger
     set_charge_endvoltage(NPMX_CHARGER_VOLTAGE_4V20); // set max voltage for 1S lithium ion battery
     enable_charger();
+
+    // Return 0 for no error
+    return 0;
 }
 
 void NPM1300_PMIC::vbus_current_limit_set(npmx_vbusin_current_t current_limit) {
