@@ -37,11 +37,20 @@ int NPM1300_PMIC::begin() {
     if (npmx_err != NPMX_SUCCESS) return -1;
 
     // Increase VBUS input limit (a few tries, rather than hanging if the PMIC doesn't answer)
-    vbus_current_limit_set(NPMX_VBUSIN_CURRENT_1500_MA);
-    for (int tries = 0; vbus_current_limit_get(true) != NPMX_VBUSIN_CURRENT_1500_MA; tries++) {
+    vbus_current_limit_set(vbus_limit);
+    for (int tries = 0; vbus_current_limit_get(true) != vbus_limit; tries++) {
         if (tries >= 5) return -1;
         delay(500);
-        vbus_current_limit_set(NPMX_VBUSIN_CURRENT_1500_MA);
+        vbus_current_limit_set(vbus_limit);
+    }
+    // poll() watches this event to catch USB being plugged back in
+    write_reg(NPMX_REG_TO_ADDR(NPM_MAIN->EVENTSVBUSIN0CLR), MAIN_EVENTSVBUSIN0SET_EVENTVBUSDETECTED_Msk);
+
+    // Why the PMIC last reset (e.g. a wake from hibernate), then clear it for next time
+    if (read_reg(NPMX_REG_TO_ADDR(NPM_ERRLOG->RSTCAUSE), &last_reset_cause) == 0) {
+        Serial.print("PMIC last reset: ");
+        print_reset_cause(last_reset_cause);
+        write_reg(NPMX_REG_TO_ADDR(NPM_ERRLOG->TASKCLRERRLOG), 1);
     }
 
     // Wake from ship / hibernate with the SHPHLD button
@@ -156,6 +165,8 @@ void NPM1300_PMIC::print_charger_status(Print &out) {
     read_reg(NPMX_REG_TO_ADDR(NPM_ADC->ADCNTCRSEL), &ntc_sel);
 
     out.printf("USB power: %s\n", vbus_present() ? "yes" : "no");
+    out.print("Last PMIC reset: ");
+    print_reset_cause(last_reset_cause, out);
     out.printf("Charger: %s, NTC limits %s, thermistor %s, recharge %s\n",
                (modules & NPMX_CHARGER_MODULE_CHARGER_MASK) ? "enabled" : "DISABLED",
                (modules & NPMX_CHARGER_MODULE_NTC_LIMITS_MASK) ? "on" : "off",
@@ -178,6 +189,23 @@ void NPM1300_PMIC::print_charger_status(Print &out) {
     npmx_adc_task_trigger(npmx_adc_get(&npm1300_instance, 0), NPMX_ADC_TASK_SINGLE_SHOT_VBAT);
     delay(5);
     out.printf("Battery: %.3f V, %.1f mA\n", getvoltage(), getcurrent() / 1000.0f);
+}
+
+bool NPM1300_PMIC::poll() {
+    // VBUS detected is latched, so a quick unplug and replug between calls is still caught
+    uint8_t events = 0;
+    if (read_reg(NPMX_REG_TO_ADDR(NPM_MAIN->EVENTSVBUSIN0SET), &events) != 0) return false;
+    if (!(events & MAIN_EVENTSVBUSIN0SET_EVENTVBUSDETECTED_Msk)) return false;
+    write_reg(NPMX_REG_TO_ADDR(NPM_MAIN->EVENTSVBUSIN0CLR), MAIN_EVENTSVBUSIN0SET_EVENTVBUSDETECTED_Msk);
+
+    // VBUSINILIM0 keeps its value (so reading it back says nothing), but the PMIC switched back to the startup
+    // limit when USB was removed: select VBUSINILIM0 again
+    npmx_vbusin_t *vbusin = npmx_vbusin_get(&npm1300_instance, 0);
+    npmx_vbusin_current_limit_set(vbusin, vbus_limit);
+    npmx_vbusin_task_trigger(vbusin, NPMX_VBUSIN_TASK_APPLY_CURRENT_LIMIT);
+    Serial.print("PMIC: USB connected, ");
+    print_vbus_current_limit(vbus_limit);
+    return true;
 }
 
 void NPM1300_PMIC::vbus_current_limit_set(npmx_vbusin_current_t current_limit) {
@@ -319,13 +347,43 @@ int NPM1300_PMIC::configure_wake_button() {
     return (npmx_ship_config_set(npmx_ship_get(&npm1300_instance, 0), &config) == NPMX_SUCCESS) ? 0 : -1;
 }
 
-void NPM1300_PMIC::sleep() {
-    // Go to ship mode
-    configure_wake_button();
-    npmx_ship_task_trigger(npmx_ship_get(&npm1300_instance, 0), NPMX_SHIP_TASK_SHIPMODE);
+int NPM1300_PMIC::sleep() {
+    // Go to ship mode (needs USB power removed too)
+    if (vbus_present()) return NPM1300_HIBERNATE_VBUS;
+    if (configure_wake_button() != 0) return -1;
+    write_reg(NPMX_REG_TO_ADDR(NPM_MAIN->EVENTSSHPHLDCLR), 0xFF);
+    write_reg(NPMX_REG_TO_ADDR(NPM_MAIN->EVENTSVBUSIN0CLR), 0xFF);
+    led_off(NPM1300_LED2);
+    led_off(NPM1300_LED3);
+    if (npmx_ship_task_trigger(npmx_ship_get(&npm1300_instance, 0), NPMX_SHIP_TASK_SHIPMODE) != NPMX_SUCCESS) {
+        return -1;
+    }
+    return 0;
+}
+
+void NPM1300_PMIC::print_reset_cause(uint8_t cause, Print &out) {
+    static const char *names[] = {"ship/hibernate exit", "boot monitor", "watchdog", "SHPHLD long press",
+                                  "thermal shutdown", "VSYS low (power fail)", "software reset"};
+    if (cause == 0) {
+        out.println("power on");
+        return;
+    }
+    bool first = true;
+    for (int i = 0; i < 7; i++) {
+        if (cause & (1 << i)) {
+            out.print(first ? "" : ", ");
+            out.print(names[i]);
+            first = false;
+        }
+    }
+    out.println();
 }
 
 int NPM1300_PMIC::hibernate(uint32_t wake_after_ms) {
+    // With USB power connected the PMIC doesn't hibernate (the datasheet says to wait for VBUS to be removed and
+    // discharged before triggering it, and VBUS is itself a wake source)
+    if (vbus_present()) return NPM1300_HIBERNATE_VBUS;
+
     if (configure_wake_button() != 0) return -1;
 
     // Wake-up timer: 64 Hz clock (15.625 ms per count), 24-bit compare value

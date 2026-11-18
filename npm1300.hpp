@@ -21,6 +21,9 @@ extern "C" {
 // Battery thermistor setting: auto detects whether one is fitted (see begin())
 #define NPM1300_NTC_AUTO (-1)
 
+// hibernate() return value when USB power is connected
+#define NPM1300_HIBERNATE_VBUS (-2)
+
 struct npm1300_led_config {
   npmx_led_mode_t led1_mode;
   npmx_led_mode_t led2_mode;
@@ -46,6 +49,12 @@ class NPM1300_PMIC {
     npmx_ship_time_t wake_button_time = NPMX_SHIP_TIME_96_MS;
 
 
+    // USB (VBUS) input current limit applied by begin(), and again by poll() each time USB is plugged in
+    npmx_vbusin_current_t vbus_limit = NPMX_VBUSIN_CURRENT_1500_MA;
+    // Call regularly (e.g. every few hundred ms). The PMIC drops back to its 100 mA startup limit whenever USB
+    // power is removed, so this reapplies vbus_limit when it comes back. Returns true if it did.
+    bool poll();
+
     // Set input limits
     void vbus_current_limit_set(npmx_vbusin_current_t current_limit);
     void battery_current_limit_set(uint16_t current);
@@ -68,10 +77,16 @@ class NPM1300_PMIC {
     float getsoc();
 
     // Power management
-    void sleep(); // Ship mode: wakes on the SHPHLD button or USB power
+    // Ship mode: wakes on the SHPHLD button or USB power. Returns the same values as hibernate().
+    int sleep();
     // Hibernate mode: wakes on the SHPHLD button, USB power, or after wake_after_ms (0: the timer's maximum, ~74 h).
-    // Returns non-zero if the PMIC could not be told to hibernate.
+    // Returns NPM1300_HIBERNATE_VBUS without doing anything while USB power is connected (the PMIC only hibernates
+    // without VBUS, and VBUS wakes it), or another non-zero value if the PMIC could not be told to hibernate.
     int hibernate(uint32_t wake_after_ms = 0);
+
+    // Why the PMIC last reset (RSTCAUSE, read and cleared by begin()), and its description
+    uint8_t last_reset_cause = 0;
+    static void print_reset_cause(uint8_t cause, Print &out = Serial);
 
     // LED Control
     void configureLEDs();
